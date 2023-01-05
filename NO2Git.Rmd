@@ -1,0 +1,185 @@
+knit: (function(input_file, encoding) {
+    out_dir <- 'docs';
+    rmarkdown::render(input_file,
+      encoding=encoding,
+      output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+
+
+
+library(dplyr)
+library(openair)
+library(worldmet)
+library(rmweather)
+
+NOAA CODE#071560-99999
+no2stade(YEAR) <- import()#For your intended sites we used Stade. Import all pollutants necessary for this we used no2 which can be found in the files. Probably an easier way than importing all individually.
+parismet(YEAR) <- importNOAA(code= "071560-99999", year= 2015) #,2016,2017,2018,2019,2020,2021,2022
+
+
+#sequence of commands for meteorolocial normalisation.
+rmwprepno2 <- rmw_prepare_data(no2met4rm, value = "no2", fraction = 1)
+rmwmodelno2 <- rmw_train_model(rmwprepno2, variables= c("ws", "wd", "air_temp","RH", "date_unix", "day_julian", "weekday", "hour"), n_trees = 100)
+rmwnormno2 <- rmw_normalise(rmwmodelno2, rmwprepno2)
+#plotting 
+rmw_plot_normalised(rmwnormno2)
+
+#averaging for 3 hours before and after PSG matches 
+rmwnormno2AVG <- timeAverage(rmwnormno2, hour= 18:00)
+#plotting
+timePlot(rmwnormno2AVG, pollutant = "value_predict")
+
+# days are separated for analysis due to diurnal variation of concentrations see "timeVariation()" command.
+#averaging for 3 hours before and after PSG matches without normalization.
+#no2 Vanilla Average (no2VAVG)
+
+no2VAVG <- timeAverage(no2w22, hour= "18:00")
+
+no2satVAVG <- selectByDate(no2VAVG, day="saturday"), selectByDate(no2satVAVG, year= 2015)
+
+no2sunVAVG <- selectByDate(no2VAVG, day="sunday"), selectByDate(no2sunVAVG, year= 2015)
+
+no2wedVAVG <- selectByDate(no2VAVG, day="wednesday"), selectByDate(no2wwedVAVG, year= 2015)
+
+sunday <- import(date.format = "%Y-%m-%d") #sunday.xls
+saturday <- import(date.format = "%Y-%m-%d") #saturday.xls
+wednesday <- import(date.format ="%Y-%m-%d") #wednesday.xls
+
+
+#for filtering for matchdays from all other correspondong individual days of the week by date with no2
+no2sunPSG <- left_join(sunday, no2sunVAVG, by="date")[,"no2"]
+no2sunPSG <- tibble(no2sunPSG)
+colnames(no2sunPSG)[colnames(no2sunPSG) == "no2sunPSG"] <- "no2"
+
+no2satPSG <- left_join(saturday, no2satVAVG, by="date")[,"no2"]
+no2satPSG <- tibble(no2satPSG)
+colnames(no2satPSG)[colnames(no2satPSG) == "no2satPSG"] <- "no2"
+
+no2wedPSG <- left_join(wednesday, no2wedVAVG, by="date")[,"no2"]
+no2wedPSG <- tibble(no2wedPSG)
+colnames(no2wedPSG)[colnames(no2wedPSG) == "no2wedPSG"] <- "no2"
+
+# Omit rows from all other individual days of the week from that of the corresponding match days
+no2sunNOT <- anti_join(no2sunVAVG, no2sunPSG, by = "no2", copy= TRUE)
+
+t.test(no2sunPSG$no2, no2sunNOT$no2)
+wilcox.test(no2sunPSG$no2, no2sunNOT$no2)
+
+#Welch Two Sample t-test
+
+#data:  no2sunPSG$no2 and no2sunNOT$no2
+#t = 0.50093, df = 38.663, p-value = 0.6193
+#alternative hypothesis: true difference in means is not equal to 0
+#95 percent confidence interval:
+ # -2.817676  4.672011
+#sample estimates:
+ # mean of x mean of y 
+#19.12321  18.19604 
+
+no2satNOT <- anti_join(no2satVAVG, no2satPSG, by = "no2", copy= TRUE)
+
+t.test(no2satPSG$no2, no2satNOT$no2)
+wilcox.test(no2satPSG$no2, no2satNOT$no2)
+
+#Welch Two Sample t-test
+
+#data:  no2satPSG$no2 and no2satNOT$no2
+#t = 1.5923, df = 58.318, p-value = 0.1167
+#alternative hypothesis: true difference in means is not equal to 0
+#95 percent confidence interval:
+ # -0.7338201  6.4455803
+#sample estimates:
+ # mean of x mean of y 
+#23.75083  20.89495 
+
+no2wedNOT <- anti_join(no2wedVAVG, no2wedPSG, by = "no2", copy= TRUE)
+
+t.test(no2wedPSG$no2, no2wedNOT$no2)
+
+#Welch Two Sample t-test
+
+#data:  no2wedPSG$no2 and no2wedNOT$no2
+#t = 1.1407, df = 39.622, p-value = 0.2608
+#alternative hypothesis: true difference in means is not equal to 0
+#95 percent confidence interval:
+#  -2.039218  7.320354
+#sample estimates:
+  #mean of x mean of y 
+#28.17118  25.53061 
+
+
+
+#For meteorologically normalised dataframes
+
+no2NORMAVG <- timeAverage(rmwnormno2, hour= "18:00")
+colnames(no2NORMAVG)[colnames(no2NORMAVG) == "value_predict"] <- "no2"
+
+no2NORMAVGsat <- selectByDate(no2NORMAVG, day="saturday")
+#, selectByDate(no2satVAVG, year= 2015)
+
+no2NORMAVGsun <- selectByDate(no2NORMAVG, day="sunday")
+#, selectByDate(no2sunVAVG, year= 2015)
+
+no2NORMAVGwed <- selectByDate(no2NORMAVG, day="wednesday")
+#, selectByDate(no2wwedVAVG, year= 2015)
+
+rm(no2satAVG)
+
+sunday <- import(date.format = "%Y-%m-%d")
+saturday <- import(date.format = "%Y-%m-%d")
+wednesday <- import(date.format ="%Y-%m-%d")
+
+
+#for filtering for matchdays from all other correspondong individual days of the week by date with no2
+no2NORMsunPSG <- left_join(sunday, no2NORMAVGsun, by="date")[,"no2"]
+no2NORMsunPSG <- tibble(no2NORMsunPSG)
+colnames(no2NORMsunPSG)[colnames(no2NORMsunPSG) == "no2NORMsunPSG"] <- "no2"
+
+no2NORMsatPSG <- left_join(saturday, no2NORMAVGsat, by="date")[,"no2"]
+no2NORMsatPSG <- tibble(no2NORMsatPSG)
+colnames(no2NORMsatPSG)[colnames(no2NORMsatPSG) == "no2NORMsatPSG"] <- "no2"
+
+no2NORMwedPSG <- left_join(wednesday, no2NORMAVGwed, by="date")[,"no2"]
+no2NORMwedPSG <- tibble(no2NORMwedPSG)
+colnames(no2NORMwedPSG)[colnames(no2NORMwedPSG) == "no2NORMwedPSG"] <- "no2"
+
+# Omit rows from all other individual days of the week from that of the corresponding match days
+no2NORMsunNOT <- anti_join(no2NORMAVG, no2NORMsunPSG, by = "no2", copy= TRUE)
+
+t.test(no2NORMsunPSG$no2, no2NORMsunNOT$no2)
+
+Welch Two Sample t-test
+
+data:  no2NORMsunPSG$no2 and no2NORMsunNOT$no2
+t = 1.1232, df = 31.974, p-value = 0.2697
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+  -0.4848077  1.6765385
+sample estimates:
+  mean of x mean of y 
+24.83276  24.23689 
+
+
+no2NORMsatNOT <- anti_join(no2NORMAVG, no2NORMsatPSG, by = "no2", copy= TRUE)
+
+t.test(no2NORMsatPSG$no2, no2NORMsatNOT$no2)
+
+Welch Two Sample t-test
+
+data:  no2NORMsatPSG$no2 and no2NORMsatNOT$no2
+t = 2.9485, df = 47.32, p-value = 0.004948
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+  0.3881071 2.0542047
+sample estimates:
+  mean of x mean of y 
+25.46421  24.24305
+
+wilcox.test(no2NORMsatPSG$no2, no2NORMsatNOT$no2)
+
+
+
+
+no2NORMwedNOT <- anti_join(no2NORMAVG, no2NORMwedPSG, by = "no2", copy= TRUE)
+t.test(no2NORMwedPSG$no2, no2NORMwedNOT$no2)
+wilcox.test(no2NORMwedPSG$no2, no2NORMwedNOT$no2)
+

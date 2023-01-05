@@ -1,0 +1,152 @@
+
+
+
+
+
+
+
+
+
+library(dplyr)
+library(openair)
+library(worldmet)
+library(rmweather)
+
+importNOAA(code= )
+pm10stade17 <- import()
+pm10 <-rbind(pm10stade15,pm10stade16,pm10stade17,pm10stade18,pm10stade19,pm10stade20,pm10stade21,pm10stade22)
+)#For your intended sites we used Stade. Import all pollutants necessary for this we used pm10 which can be found in the files. Probably an easier way than importing all individually.
+parismet <- importNOAA(code= "071560-99999", year= 2015) #,2016,2017,2018,2019,2020,2021,2022
+pm10met4rm <-merge(met, pm10)
+
+#sequence of commands for meteorolocial normalisation.
+rmwpreppm10 <- rmw_prepare_data(pm10met4rm, value = "pm10", fraction = 1)
+rmwmodelpm10 <- rmw_train_model(rmwpreppm10, variables= c("ws", "wd", "air_temp","RH", "date_unix", "day_julian", "weekday", "hour"), n_trees = 100)
+rmwnormpm10 <- rmw_normalise(rmwmodelpm10, rmwpreppm10)
+#plotting 
+rmw_plot_normalised(rmwnormpm10)
+
+#averaging for 3 hours before and after PSG matches 
+rmwnormpm10AVG <- timeAverage(rmwnormpm10, hour= 18:00)
+#plotting
+timePlot(rmwnormpm10AVG, pollutant = "value_predict")
+
+# days are separated for analysis due to diurnal variation of concentrations see "timeVariation()" command.
+#averaging for 3 hours before and after PSG matches without normalization.
+#pm10 Vanilla Average (pm10VAVG)
+
+pm10VAVG <- timeAverage(pm10, hour= "18:00")
+
+pm10satVAVG <- selectByDate(pm10VAVG, day="saturday")
+
+pm10sunVAVG <- selectByDate(pm10VAVG, day="sunday")
+
+pm10wedVAVG <- selectByDate(pm10VAVG, day="wednesday")
+
+
+
+
+#for filtering for matchdays from all other correspondong individual days of the week by date with pm10
+pm10sunPSG <- left_join(sunday, pm10sunVAVG, by="date")[,"pm10"]
+pm10sunPSG <- tibble(pm10sunPSG)
+colnames(pm10sunPSG)[colnames(pm10sunPSG) == "pm10sunPSG"] <- "pm10"
+
+pm10satPSG <- left_join(saturday, pm10satVAVG, by="date")[,"pm10"]
+pm10satPSG <- tibble(pm10satPSG)
+colnames(pm10satPSG)[colnames(pm10satPSG) == "pm10satPSG"] <- "pm10"
+
+pm10wedPSG <- left_join(wednesday, pm10wedVAVG, by="date")[,"pm10"]
+pm10wedPSG <- tibble(pm10wedPSG)
+colnames(pm10wedPSG)[colnames(pm10wedPSG) == "pm10wedPSG"] <- "pm10"
+
+# Omit rows from all other individual days of the week from that of the corresponding match days
+pm10sunNOT <- anti_join(pm10sunVAVG, pm10sunPSG, by = "pm10", copy= TRUE)
+
+t.test(pm10sunPSG$pm10, pm10sunNOT$pm10)
+wilcox.test(pm10sunPSG$pm10, pm10sunNOT$pm10)
+
+#Welch Two Sample t-test
+
+#data:  pm10sunPSG$pm10 and pm10sunNOT$pm10
+#t = 0.50093, df = 38.663, p-value = 0.6193
+#alternative hypothesis: true difference in means is not equal to 0
+#95 percent confidence interval:
+ # -2.817676  4.672011
+#sample estimates:
+ # mean of x mean of y 
+#19.12321  18.19604 
+
+pm10satNOT <- anti_join(pm10satVAVG, pm10satPSG, by = "pm10", copy= TRUE)
+
+t.test(pm10satPSG$pm10, pm10satNOT$pm10)
+wilcox.test(pm10satPSG$pm10, pm10satNOT$pm10)
+
+#Welch Two Sample t-test
+
+#data:  pm10satPSG$pm10 and pm10satNOT$pm10
+#t = 1.5923, df = 58.318, p-value = 0.1167
+#alternative hypothesis: true difference in means is not equal to 0
+#95 percent confidence interval:
+ # -0.7338201  6.4455803
+#sample estimates:
+ # mean of x mean of y 
+#23.75083  20.89495 
+
+pm10wedNOT <- anti_join(pm10wedVAVG, pm10wedPSG, by = "pm10", copy= TRUE)
+
+t.test(pm10wedPSG$pm10, pm10wedNOT$pm10)
+
+
+
+
+
+#For meteorologically normalised dataframes
+
+pm10NORMAVG <- timeAverage(rmwnormpm10, hour= "18:00")
+colnames(pm10NORMAVG)[colnames(pm10NORMAVG) == "value_predict"] <- "pm10"
+
+pm10NORMAVGsat <- selectByDate(pm10NORMAVG, day="saturday")
+#, selectByDate(pm10satVAVG, year= 2015)
+
+pm10NORMAVGsun <- selectByDate(pm10NORMAVG, day="sunday")
+#, selectByDate(pm10sunVAVG, year= 2015)
+
+pm10NORMAVGwed <- selectByDate(pm10NORMAVG, day="wednesday")
+#, selectByDate(pm10wwedVAVG, year= 2015)
+
+
+#for filtering for matchdays from all other correspondong individual days of the week by date with pm10
+pm10NORMsunPSG <- left_join(sunday, pm10NORMAVGsun, by="date")[,"pm10"]
+pm10NORMsunPSG <- tibble(pm10NORMsunPSG)
+colnames(pm10NORMsunPSG)[colnames(pm10NORMsunPSG) == "pm10NORMsunPSG"] <- "pm10"
+
+pm10NORMsatPSG <- left_join(saturday, pm10NORMAVGsat, by="date")[,"pm10"]
+pm10NORMsatPSG <- tibble(pm10NORMsatPSG)
+colnames(pm10NORMsatPSG)[colnames(pm10NORMsatPSG) == "pm10NORMsatPSG"] <- "pm10"
+
+pm10NORMwedPSG <- left_join(wednesday, pm10NORMAVGwed, by="date")[,"pm10"]
+pm10NORMwedPSG <- tibble(pm10NORMwedPSG)
+colnames(pm10NORMwedPSG)[colnames(pm10NORMwedPSG) == "pm10NORMwedPSG"] <- "pm10"
+
+# Omit rows from all other individual days of the week from that of the corresponding match days
+pm10NORMsunNOT <- anti_join(pm10NORMAVG, pm10NORMsunPSG, by = "pm10", copy= TRUE)
+
+t.test(pm10NORMsunPSG$pm10, pm10NORMsunNOT$pm10)
+
+
+
+
+pm10NORMsatNOT <- anti_join(pm10NORMAVG, pm10NORMsatPSG, by = "pm10", copy= TRUE)
+
+t.test(pm10NORMsatPSG$pm10, pm10NORMsatNOT$pm10)
+
+wilcox.test(pm10NORMsatPSG$pm10, pm10NORMsatNOT$pm10)
+
+
+
+
+pm10NORMwedNOT <- anti_join(pm10NORMAVG, pm10NORMwedPSG, by = "pm10", copy= TRUE)
+t.test(pm10NORMwedPSG$pm10, pm10NORMwedNOT$pm10)
+wilcox.test(pm10NORMwedPSG$pm10, pm10NORMwedNOT$pm10)
+
+
