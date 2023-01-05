@@ -1,12 +1,4 @@
 
-
-
-
-
-
-
-
-
 library(dplyr)
 library(openair)
 library(worldmet)
@@ -95,10 +87,6 @@ wilcox.test(pm10satPSG$pm10, pm10satNOT$pm10)
 pm10wedNOT <- anti_join(pm10wedVAVG, pm10wedPSG, by = "pm10", copy= TRUE)
 
 t.test(pm10wedPSG$pm10, pm10wedNOT$pm10)
-
-
-
-
 
 #For meteorologically normalised dataframes
 
