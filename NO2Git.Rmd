@@ -59,30 +59,12 @@ wilcox.test(no2sunPSG$no2, no2sunNOT$no2)
 
 #Welch Two Sample t-test
 
-#data:  no2sunPSG$no2 and no2sunNOT$no2
-#t = 0.50093, df = 38.663, p-value = 0.6193
-#alternative hypothesis: true difference in means is not equal to 0
-#95 percent confidence interval:
- # -2.817676  4.672011
-#sample estimates:
- # mean of x mean of y 
-#19.12321  18.19604 
 
 no2satNOT <- anti_join(no2satVAVG, no2satPSG, by = "no2", copy= TRUE)
 
 t.test(no2satPSG$no2, no2satNOT$no2)
 wilcox.test(no2satPSG$no2, no2satNOT$no2)
 
-#Welch Two Sample t-test
-
-#data:  no2satPSG$no2 and no2satNOT$no2
-#t = 1.5923, df = 58.318, p-value = 0.1167
-#alternative hypothesis: true difference in means is not equal to 0
-#95 percent confidence interval:
- # -0.7338201  6.4455803
-#sample estimates:
- # mean of x mean of y 
-#23.75083  20.89495 
 
 no2wedNOT <- anti_join(no2wedVAVG, no2wedPSG, by = "no2", copy= TRUE)
 
@@ -127,15 +109,10 @@ no2NORMsunNOT <- anti_join(no2NORMAVG, no2NORMsunPSG, by = "no2", copy= TRUE)
 
 t.test(no2NORMsunPSG$no2, no2NORMsunNOT$no2)
 
-Welch Two Sample t-test
-
 
 no2NORMsatNOT <- anti_join(no2NORMAVG, no2NORMsatPSG, by = "no2", copy= TRUE)
 
 t.test(no2NORMsatPSG$no2, no2NORMsatNOT$no2)
-
-Welch Two Sample t-test
-
 
 
 wilcox.test(no2NORMsatPSG$no2, no2NORMsatNOT$no2)
